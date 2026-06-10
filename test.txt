@@ -12,3 +12,5 @@ this is another test that is being run to test github
 
 this is another test of using vsc and making sure that github works 
 >>>>>>> a582fc2 (Auto-commit)
+
+this is another test that I'm working on right now 
