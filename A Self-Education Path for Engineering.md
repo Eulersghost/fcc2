@@ -106,3 +106,5 @@ Engineering is a **doing** discipline. Theory without practice is incomplete.
 **Total: ~2–4 years** at a self-paced, part-time schedule — comparable to a degree program, but flexible.
 
 The most important thing: **start building things as early as possible.** An engineer who has built three real projects will always outperform one who has only read textbooks. Theory and practice must reinforce each other.
+
+This is something that I'm writing right now at the end of the document.
