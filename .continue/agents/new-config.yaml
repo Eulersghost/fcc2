@@ -1,0 +1,17 @@
+# This is an example configuration file
+# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
+
+name: Local
+version: 1.0.0
+schema: v1
+
+# Define which models can be used
+# https://docs.continue.dev/customization/models
+mmodels:
+  - name: Autodetect
+    provider: ollama
+    model: AUTODETECT
+  - name: Autodetect (1)
+    provider: lmstudio
+    model: AUTODETECT
+    apiBase: http://localhost:1234/v1/dels:
