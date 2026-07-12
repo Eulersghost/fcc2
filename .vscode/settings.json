@@ -95,39 +95,6 @@
     "**/.forgejo/workflows/*.yaml"
   ],
   "yaml.schemas": {
-    "file:///home/jason/.vscode/extensions/continue.continue-1.2.14-linux-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///Users/jasons-lab/.vscode/extensions/continue.continue-1.2.14-darwin-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///c%3A/Users/jpalacio/.vscode/extensions/continue.continue-1.2.14-win32-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///Users/jasons-lab/.vscode/extensions/continue.continue-1.2.15-darwin-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///c%3A/Users/jpalacio/.vscode/extensions/continue.continue-1.2.16-win32-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///home/jason/.vscode/extensions/continue.continue-1.2.16-linux-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///c%3A/Users/jpalacio/.vscode/extensions/continue.continue-1.2.17-win32-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///c%3A/Users/jpalacio/.vscode/extensions/continue.continue-1.2.19-win32-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///c%3A/Users/jpalacio/.vscode/extensions/continue.continue-1.2.22-win32-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///Users/jasons-lab/.vscode/extensions/continue.continue-1.2.22-darwin-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
-    "file:///home/jason/.vscode/extensions/continue.continue-1.2.22-linux-x64/config-yaml-schema.json": [
-      ".continue/**/*.yaml"
-    ],
     "file:///home/jason/.vscode/extensions/continue.continue-2.0.0-linux-x64/config-yaml-schema.json": [
       ".continue/**/*.yaml",
       "file:///home/jason/.continue/config.yaml"
