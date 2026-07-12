@@ -1,0 +1,49 @@
+
+  Id     Duration CommandLine
+  --     -------- -----------
+   1        0.003 cd 
+   2        9.764 git clone https://github.com/PowerShell/PowerShell.git
+   3        0.015 ls
+   4        0.001 cd ./PowerShell/
+   5        0.006 ls
+   6        0.001 cd ./assets/
+   7        0.008 ls
+   8        0.000 cd 
+   9        0.009 ls
+  10        0.215 Start-PSBootstrap
+  11        0.001 cd ./PowerShell/
+  12        0.009 ls
+  13        0.050 Start-PSBootstrap
+  14        0.001 cd src
+  15        0.008 ls
+  16        0.044 Start-PSBootstrap
+  17        0.000 cd 
+  18        0.023 cd Powershell
+  19        0.025 Import-Module ./build.psm1
+  20        0.000 cd ./PowerShell/
+  21        0.008 ls
+  22        0.328 Import-Module ./build.psm1
+  23        0.679 Start-PSBuild -UseNuGetOrg
+  24        0.001 $env:HOME/.dotnet
+  25       16.509 Install-Dotnet
+  26     5:05.536 Start-PSBuild -Clean
+  27        0.019 clear
+  28        8.406 Start-PSBootstrap
+  29        0.000 cd 
+  30        0.026 ls
+  31        0.001 cd fcc2
+  32        0.007 ls
+  33        0.475 Help Set-PSBreakpoint -Online
+  34        3.823 help *processes
+  35        0.221 help *process
+  36        0.038 Help *transcript, 'keyboard'*
+  37        0.033 Help *transcript, keyboard*
+  38        0.304 Help *transcript*
+  39        0.067 about Start-Transcript
+  40       20.980 Help Start-Transcript
+  41        0.106 About _common_parameters
+  42        3.004 get-help keyboard
+  43        0.107 get-help about_History
+  44        0.174 get-help about_History -Examples
+  45        0.039 h
+
