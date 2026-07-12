@@ -15,6 +15,9 @@ Export-Alias
 #import
 Import-Alias
 
+Import-Alias | Output-File key.Get-History
+
+
 #for keyboard history use the alias 'h' or  use 'history', Get-Histroy and then pipe it to Out-File 
 Get-History | Out-File keyboard2.txt
 
