@@ -32,3 +32,4 @@ $PSDefaultParameterValues['Out-File:Width'] = 2000 # this has to be run before i
 
 Get-Alias #get's the list of aliases
 
+#this is something that I'm writing right now in powershell 
