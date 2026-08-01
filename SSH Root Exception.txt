@@ -1,0 +1,80 @@
+Yes, this is possible. SSH on Debian (via OpenSSH) supports a flexible configuration system that lets you do exactly this — deny root login globally while allowing it under specific conditions like a particular SSH key.
+
+## How It Works
+
+The key mechanism is OpenSSH's **`Match`** blocks, which apply conditional configuration rules based on criteria like user, group, address, etc. 
+Here's the approach:
+
+### 1. Set the global default to deny root
+
+In `/etc/ssh/sshd_config`:
+
+```
+PermitRootLogin no
+```
+
+### 2. Use a `Match` block to allow root only with a key
+
+There are a few ways to create the exception:
+
+#### Option A — Allow root from a specific key only (via `Match User` + key restrictions)
+
+In root's `~/.ssh/authorized_keys` file, you can restrict what a specific key can do using the `command` and `restrict` options. But this doesn't fully solve "allow root login with this key but not that key" on its own.
+
+The more robust approach is:
+
+#### Option B — Allow root login only with public key authentication (no passwords)
+
+```
+PermitRootLogin no
+
+Match User root
+    PermitRootLogin prohibit-password
+```
+
+`prohibit-password` (equivalent to the older `without-password`) allows root to log in **only via public key authentication** — password-based root login is still blocked. 
+This means: any key in root's `authorized_keys` can be used, but passwords are denied.
+
+#### Option C — Allow root only from a specific SSH key (most restrictive)
+
+To allow **one specific key** and reject all others for root, you don't need a `Match` block — you control this in root's `authorized_keys` file by only placing the allowed key(s) there:
+
+```
+# /root/.ssh/authorized_keys
+ssh-ed25519 AAAAC3Nza... specific-allowed-key-comment
+```
+
+Combined with:
+
+```
+PermitRootLogin no
+
+Match User root
+    PermitRootLogin prohibit-password
+```
+
+This gives you:
+- **Global default:** root login denied
+- **Exception:** root can log in, but **only** via public key (no password)
+- **Key-level control:** only the specific key(s) you put in `/root/.ssh/authorized_keys` will work
+
+### 3. Reload SSH after changes
+
+```bash
+sudo systemctl restart sshd
+```
+
+> **Tip:** Test your config before restarting to avoid lockouts:
+> ```bash
+> sudo sshd -t
+> ```
+
+## Summary
+
+| Layer | What it does |
+|---|---|
+| `PermitRootLogin no` (global) | Denies root login by default |
+| `Match User root` + `PermitRootLogin prohibit-password` | Allows root login only via SSH key (no passwords) |
+| `/root/.ssh/authorized_keys` | Controls exactly which key(s) can access root |
+
+So yes — you get a default-deny for root with a key-based exception, and you can further lock it down to a single pre-configured key by simply only listing that one key in root's `authorized_keys` file.

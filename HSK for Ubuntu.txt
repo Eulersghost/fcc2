@@ -1,0 +1,236 @@
+Here's a comprehensive guide on how to configure a Hardware Security Key (HSK), such as a YubiKey, Google Titan, SoloKey, or Nitrokey, for logging into Ubuntu using FIDO U2F.
+
+---
+
+# Configuring a Hardware Security Key (HSK) for Ubuntu Login
+
+## Prerequisites
+
+- A FIDO2/U2F-compatible hardware security key (YubiKey 5 series, Google Titan, SoloKey, Nitrokey, etc.)
+- Ubuntu (or an Ubuntu-based distribution like Lubuntu, Xubuntu)
+- Root or sudo access
+
+## Step 1: Install the Required Software
+
+Install the `libpam-u2f` PAM module and the `pamu2fcfg` enrollment tool:
+
+```bash
+sudo apt update
+sudo apt install libpam-u2f pamu2fcfg
+```
+
+You may also want to install the YubiKey manager and udev rules (if using a YubiKey):
+
+```bash
+sudo apt install yubikey-manager libu2f-udev
+```
+
+Verify your key is detected:
+
+```bash
+lsusb | grep -i yubico
+```
+
+> ⚠️ **Security note:** Yubico recommends ensuring your version of `pam_u2f` is at least **1.3.1** to mitigate [CVE-2025-23013](https://www.yubico.com/support/security-advisories/ysa-2025-01/).
+
+## Step 2: Enroll Your Security Key
+
+1. **Insert your HSK** into a USB port.
+2. Create the Yubico configuration directory:
+
+```bash
+mkdir -p ~/.config/Yubico
+```
+
+3. Enroll the key:
+
+```bash
+pamu2fcfg > ~/.config/Yubico/u2f_keys
+```
+
+- You may be prompted for your **FIDO2 PIN** (this is the key's PIN, not your Ubuntu password).
+- When the key starts flashing, **touch the metal contact** to confirm registration.
+
+4. **Add a backup key** (strongly recommended!):
+
+```bash
+pamu2fcfg -n >> ~/.config/Yubico/u2f_keys
+```
+
+The enrollment file will look like:
+
+```
+username:keyhandle,public_key,options
+```
+
+### Optional: Store the key file in a secure system-wide location
+
+If your home directory is encrypted, the `u2f_keys` file won't be readable at boot, which can **lock you out**. To avoid this, move it to `/etc`:
+
+```bash
+sudo mkdir -p /etc/Yubico
+sudo mv ~/.config/Yubico/u2f_keys /etc/Yubico/u2f_keys
+```
+
+When you do this, you'll need to add `authfile=/etc/Yubico/u2f_keys` to all PAM configuration lines (shown below).
+
+## Step 3: Test with `sudo` First (Recommended)
+
+Before locking down login, test the configuration with `sudo` to make sure everything works.
+
+1. Open a terminal and keep it open (so you can revert changes if needed).
+
+2. Edit the sudo PAM config:
+
+```bash
+sudo nano /etc/pam.d/sudo
+```
+
+3. Add this line **after** the `@include common-auth` line:
+
+```
+auth       required   pam_u2f.so
+```
+
+If you moved the key file to `/etc/Yubico/`, use:
+
+```
+auth       required   pam_u2f.so authfile=/etc/Yubico/u2f_keys
+```
+
+4. **Test without the key** — open a new terminal and run:
+
+```bash
+sudo echo test
+```
+
+Enter your password. Authentication should **fail** because the HSK isn't inserted.
+
+5. **Test with the key** — insert your HSK, open a new terminal, and run:
+
+```bash
+sudo echo test
+```
+
+Enter your password, then **touch the key** when it flashes. If it succeeds, your setup is working correctly.
+
+> 💡 You can add `cue` to the PAM line to get a visible prompt to touch the key:
+> ```
+> auth       required   pam_u2f.so cue
+> ```
+
+## Step 4: Configure Login (Display Manager)
+
+### For Ubuntu 17.10+ (GDM):
+
+```bash
+sudo nano /etc/pam.d/gdm-password
+```
+
+### For Ubuntu 17.04 and older (LightDM):
+
+```bash
+sudo nano /etc/pam.d/lightdm
+```
+
+Add this line **after** the `@include common-auth` line:
+
+```
+auth       required   pam_u2f.so
+```
+
+(Add `authfile=/etc/Yubico/u2f_keys` if you moved the file.)
+
+## Step 5: Configure TTY Terminal Login
+
+```bash
+sudo nano /etc/pam.d/login
+```
+
+Add this line **after** the `@include common-auth` line:
+
+```
+auth       required   pam_u2f.so
+```
+
+(Add `authfile=/etc/Yubico/u2f_keys` if you moved the file.)
+
+## Step 6: Configure Other PAM Services (Optional)
+
+You can add the same `pam_u2f.so` line to other PAM files for additional services:
+
+| Service | PAM File | Description |
+|---------|----------|-------------|
+| `sudo` | `/etc/pam.d/sudo` | Require key for sudo |
+| `su` | `/etc/pam.d/su` | Require key for su |
+| GUI login | `/etc/pam.d/gdm-password` | GDM display manager |
+| TTY login | `/etc/pam.d/login` | Console/terminal login |
+| SSH (password) | `/etc/pam.d/sshd` | SSH password auth + key |
+| All of the above | `/etc/pam.d/common-auth` | System-wide 2FA |
+
+> ⚠️ Editing `common-auth` affects **all** authentication services. Use `nouserok` to allow users without a registered key to still log in:
+> ```
+> auth required pam_u2f.so nouserok authfile=/etc/Yubico/u2f_keys
+> ```
+
+## SSH with FIDO2 Hardware Keys (Native OpenSSH Support)
+
+For SSH, OpenSSH 8.2+ supports FIDO2 natively — the private key lives on the hardware key:
+
+```bash
+# Generate a hardware-backed SSH key
+ssh-keygen -t ed25519-sk -C "hsk-ssh"
+
+# Copy the public key to the remote server
+ssh-copy-id -i ~/.ssh/id_ed25519_sk.pub user@remote-server
+
+# Connect (you'll be prompted to touch the key)
+ssh user@remote-server
+```
+
+For passwordless SSH with discoverable (resident) keys stored on the device:
+
+```bash
+ssh-keygen -t ed25519-sk -O resident -C "resident-key"
+ssh-add -K          # Load resident keys from hardware
+ssh-keygen -K       # List keys on the device
+```
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Key not detected | Run `lsusb \| grep -i yubico`; install `libu2f-udev`, replug the key |
+| Can't log in | Enable debug mode (see below) |
+| Locked out | Boot into recovery mode or a live USB, revert PAM changes |
+| Enrollment fails | Run `pamu2fcfg -d` for verbose debug output |
+
+### Enabling Debug Mode
+
+```bash
+sudo touch /var/log/pam_u2f.log
+sudo nano /etc/pam.d/gdm-password
+```
+
+Add `debug debug_file=/var/log/pam_u2f.log` to the `pam_u2f.so` line:
+
+```
+auth       required   pam_u2f.so debug debug_file=/var/log/pam_u2f.log
+```
+
+Then check the log after a login attempt:
+
+```bash
+cat /var/log/pam_u2f.log
+```
+
+## ⚠️ Important Safety Tips
+
+1. **Always keep a backup root terminal open** while making PAM changes, so you can revert if something breaks.
+2. **Enroll at least two keys** — if you lose your only key, you'll be locked out.
+3. **If your home directory is encrypted**, store the `u2f_keys` file in `/etc/Yubico/` instead of `~/.config/Yubico/`, or you'll be locked out after reboot.
+4. **Test incrementally** — start with `sudo`, confirm it works, then proceed to login and TTY.
+
+---
+
+**Sources:** The steps above are based on the official [Yubico Ubuntu Linux Login Guide (U2F)](https://support.yubico.com/s/article/Ubuntu-Linux-login-guide-U2F) and a comprehensive [FIDO2 security key setup guide for Ubuntu](https://oneuptime.com/blog/post/2026-03-02-how-to-set-up-fido2-security-keys-for-login-on-ubuntu/view), with additional information from [Ubuntu's official documentation on U2F/FIDO authentication](https://ubuntu.com/server/docs/how-to/security/two-factor-authentication-with-u2f-or-fido/).
