@@ -1,0 +1,95 @@
+Here’s a solid pattern to get **Cloudflare Tunnel + Cloudflare Access** in front of **Proxmox**, while keeping it **strict allowlist-based (identity-based) and MFA-gated** (no “open access”, no “password-only for everyone”).
+
+## 1) Tunnel: expose only Proxmox via HTTPS (no public ingress)
+
+Create a tunnel with `cloudflared` and define an ingress for **only** your Proxmox hostname (e.g. `proxmox.example.com`) pointing at Proxmox’s local web UI (typically `https://127.0.0.1:8006` or `https://<LAN-IP>:8006`).
+
+Important for Proxmox: in the Tunnel “public hostname”/origin settings, enable the typical Proxmox-compatible HTTP behaviors people report fixing issues:
+
+- **http2Origin**
+- **noTLSVerify** (Proxmox’s cert is usually self-signed internally)
+- **disableChunkedEncoding**
+  These are commonly required for Proxmox to fully function behind Tunnel (including UI flows). <citation src="10"></citation>
+
+## 2) Access: make a strict default-deny posture
+
+In Cloudflare Zero Trust → **Access → Applications**, create your Proxmox application as **Self-hosted** with:
+
+- Application domain: `proxmox.example.com`
+
+Then create policies so only selected identities can reach it.
+
+### Identity-based allowlist (use IdP groups or SAML/OIDC claims)
+
+Use an **Allow** policy with selectors like:
+
+- **Emails ending in** `@yourcompany.com`, or
+- **OIDC claim / SAML attribute** (if your IdP sends a specific attribute), or
+- **IdP group / SAML group** (best for enterprises)
+
+Cloudflare Access supports identity-based selectors such as **Emails** / **Emails ending in**, **Identity provider group**, **SAML Group**, and **OIDC Claim**. <citation src="1"></citation>
+
+**Do not** create any policy that includes **Everyone** for the main app.
+
+### Add “deny by omission”
+
+Access policy evaluation is ordered; once an Allow matches, evaluation stops. Your easiest safe posture is: don’t add any “Everyone allow”. Everything not matching your allow policies won’t get access. (You can also add explicit Block policies, but the key is: no Everyone allow.)
+
+## 3) Enforce MFA (not “password-only”)
+
+You have two MFA enforcement modes:
+
+- **IdP-based MFA**: Require the authentication method reported by your IdP.
+- **Independent MFA**: Enforce a second factor via Access without relying on IdP configuration.
+
+Cloudflare documents both, and gives a concrete selector for IdP-based MFA using **Authentication Method** with value `mfa - multiple-factor authentication`. <citation src="3"></citation>
+
+### Recommended approach
+
+If you already manage MFA in your IdP (Entra/Okta), use **IdP-based MFA**:
+
+- In the Proxmox application policy, add a **Require** rule:
+  - Selector: **Authentication method**
+  - Value: `mfa - multiple-factor authentication` <citation src="3"></citation>
+
+This ensures that even if someone has a valid login, they only pass if they completed MFA at the IdP.
+
+## 4) Handle Proxmox WebSocket endpoints (VNC/LXC console)
+
+Proxmox uses WebSockets for some console features. In practice, Access can interfere with the websocket upgrade/auth challenge, causing failures like “failed waiting for client” or consoles not connecting.
+
+A common fix is to **split policies**:
+
+1. **Main Proxmox UI application**
+
+- Policy: **Allow** for your identity allowlist + MFA
+
+2. **WebSocket endpoint application**
+
+- Create a second Access application/policy for the websocket path, for example:
+  - Application URL: `proxmox.example.com/api2/json/*/vncwebsocket`
+  - Policy action: **Bypass**
+  - Include: **Everyone**
+
+Rationale: you still require Access to reach the web app; the bypass is scoped only to the websocket path so the console traffic isn’t blocked by Access’s interactive auth flow. <citation src="11"></citation>
+
+If you want, you can tighten this further by only bypassing the minimum necessary paths (and keeping the rest deny-by-default). But the “bypass only the vncwebsocket path” split is the key pattern.
+
+## 5) Put it together (example policy intent)
+
+- Application A: `proxmox.example.com`
+  - Allow: users in `@yourcompany.com` (or IdP group X / SAML group Y)
+  - Require: **Authentication method = `mfa - multiple-factor authentication`**
+- Application B: `proxmox.example.com/api2/json/*/vncwebsocket`
+  - Bypass: Everyone (path-scoped websocket allowance)
+
+## Quick checklist
+
+- No policy that grants **Everyone** access to the main Proxmox hostname.
+- MFA enforced via **Authentication method** require rule (or independent MFA).
+- Tunnel origin settings include the Proxmox-working trio (**http2Origin**, **noTLSVerify**, **disableChunkedEncoding**). <citation src="10"></citation>
+- Console websocket path handled via the split application/policy (bypass only websocket path). <citation src="11"></citation>
+
+---
+
+If you tell me which IdP you’re using (**Entra ID** vs **Okta** vs generic **SAML/OIDC**) and whether you want allowlisting by **email**, **group**, or **both**, I can write the exact selector/rule combinations to match your setup.

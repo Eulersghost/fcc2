@@ -1,0 +1,48 @@
+Proxmox VE can use an external Identity Provider via **OpenID Connect (OIDC)**. So the “Auth0 as IdP” path is: **Auth0 (OIDC) → Proxmox Realm (OIDC)**, then map who gets Proxmox permissions.
+
+## 1) In Auth0: create an OIDC application for Proxmox
+In your Auth0 tenant:
+
+1. Create an Application (OIDC) (often “Regular Web Application” / “Machine to Machine” depending on Auth0 UI labels; you want an OIDC client that can do the auth-code flow).
+2. Set these basics:
+   - **Allowed Callback URLs / Redirect URIs**: use Proxmox’s GUI URL *and* include the wildcard Proxmox expects for internal callback paths, e.g.
+     - `https://proxmox.example.com:8006/`
+     - `https://proxmox.example.com:8006/*` (or `.../` plus `/*` depending on Auth0’s field)
+   - **Allowed Logout URLs** (if you configure logout): match what Proxmox supports for logout in your version.
+3. Copy:
+   - **Client ID**
+   - **Client Secret** (if confidential client)
+4. Decide what claim Proxmox should use as the username (Proxmox can be configured with a “Username Claim”, such as `preferred_username`). That claim must exist in the Auth0 ID token / userinfo.
+
+## 2) In Proxmox VE: add an OIDC realm pointing to Auth0
+On Proxmox (web UI):
+
+1. Go to **Datacenter → Permissions → Realms → Add → OpenID Connect Server**
+2. Configure:
+   - **Realm**: give it a local name (e.g. `Auth0-OIDC`)
+   - **Issuer URL**: your Auth0 issuer, typically:
+     - `https://YOUR_DOMAIN/`
+     - or `https://YOUR_DOMAIN/` + the connection/realm path if you use one (Auth0 can vary by setup)
+   - **Client ID**: from Auth0
+   - **Client Key**: paste the **Client Secret**
+   - **Username Claim**: e.g. `preferred_username` (must match your Auth0 token claim)
+   - **Autocreate Users**: usually **enable** for first testing; later you can disable and pre-provision if you prefer stricter control.
+
+## 3) RBAC: grant Proxmox roles to the federated users/groups
+After a successful first login (or autocreate), add permissions in Proxmox for the resulting user identities.
+
+Typical pattern:
+- Users will show up as something like `AUTH0_USERNAME@RealmName` (the exact format depends on Proxmox realm naming and claim usage).
+- Assign **Administrator** / **PVEAdmin** / or custom roles to those identities via the Proxmox permissions UI (or CLI).
+
+## 4) Common gotchas (these stop logins)
+- **Redirect URI mismatch** is the #1 failure. Proxmox expects the redirect URI pattern to match internal callback paths; using the “wildcard” form (ending with `/*`) is usually necessary.
+- **Username claim missing**: if Proxmox can’t find the configured `Username Claim` in the token, login/creation can fail.
+- **HTTPS and certificates**: Proxmox GUI URL must match what Auth0 redirects to (scheme, host, port).
+
+## Quick questions (so I can give exact values)
+1. What Proxmox URL are you using for the web GUI (hostname + port, e.g. `https://pve.example.com:8006`)?
+2. Are you using Auth0 **custom domain** or the default `YOUR_TENANT.auth0.com` issuer?
+3. Which Proxmox version are you on?
+
+If you answer those, I’ll tell you the exact Auth0 fields (issuer, redirect URI list, and which claim to configure) to paste in.
