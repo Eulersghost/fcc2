@@ -21,4 +21,8 @@ Get-Process -Name p*
 New-Item -ItemType "Directory" -Name "MyFolder1"
 
 #looks like I was incorrect I needed to make sure that these don't have any quotation marks 
-New-Item -ItemType Directory -Name MyFolder1, MyFolder2
+New-Item -ItemType Directory -Name "MyFolder1, MyFolder2"
+#needed to add the quotation marks to the command
+
+#Remove the folders that were made in the previous step
+Remove-Item -ItemType Directory -Name My*
