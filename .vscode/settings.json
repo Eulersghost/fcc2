@@ -86,14 +86,7 @@
   "atlascode.bitbucket.enabled": false,
   "task.quickOpen.showAll": false,
   "editor.formatOnSave": true,
-  "yaml.disableSchemaDetection": [
-    "**/.github/workflows/*.yml",
-    "**/.github/workflows/*.yaml",
-    "**/.gitea/workflows/*.yml",
-    "**/.gitea/workflows/*.yaml",
-    "**/.forgejo/workflows/*.yml",
-    "**/.forgejo/workflows/*.yaml"
-  ],
+  "yaml.disableSchemaDetection": [],
   "yaml.schemas": {
     "file:///home/jason/.vscode/extensions/continue.continue-2.1.0-linux-x64/config-yaml-schema.json": [
       ".continue/**/*.yaml",
